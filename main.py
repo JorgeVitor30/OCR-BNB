@@ -20,12 +20,24 @@ class Ocr:
         return qtd_page
 
     def extraction(self):
-        # Extração dos dados do PDF
-        pass
 
+        for i in range(2):
+            page = self.pdf.pages[i].extract_text()
+
+            validate_page = page.find('BANCO DO NORDESTE')
+
+            if validate_page != -1:
+                list_data = []
+
+                index_processo = page.find('Processo')
+                if len(page[index_processo:(index_processo+39)].replace(' ', '')) > 30:
+                    print(page.find('Processo'), page[index_processo:(index_processo+39)].replace(' ', ''))
+                else:
+                    print('ARQUIVO SEM NADA')
 
 
 process = Ocr('publicacoes_42_90554530_221215_TJCE_20221215_085343.pdf')
 process.returning_pages()
+process.extraction()
 
 #TODO FAZER UMA CLASSE DE VERIFICAÇÃO ARQUIVO WORD (CONVERSÃO PARA PDF)
