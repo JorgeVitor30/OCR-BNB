@@ -1,6 +1,5 @@
 from PyPDF2 import PdfReader
 
-
 class Ocr:
     def __init__(self, dir_pdf):
         self.dir = dir_pdf
@@ -30,10 +29,50 @@ class Ocr:
                 list_data = []
 
                 index_processo = page.find('Processo')
-                if len(page[index_processo:(index_processo+39)].replace(' ', '')) > 30:
-                    print(page.find('Processo'), page[index_processo:(index_processo+39)].replace(' ', ''))
-                else:
-                    print('ARQUIVO SEM NADA')
+                index_data_disp = page.find('Data Disponibilização::')
+                index_data_publi = page.find('Data Publicação::')
+                index_jornal = page.find('Jornal:')
+                index_tribunal = page.find('Tribunal:')
+                index_vara = page.find('Vara:')
+                index_cidade =page.find('Cidade:')
+                index_pagina = page.find('Página:')
+                index_titulo = page.find('Título:')
+
+
+                id_processo = page[(index_processo+9):index_data_disp].replace(' ', '').strip()
+
+                data_dispo = page[index_data_disp+23:index_data_publi].strip()
+
+                id_compromisso = id_processo + ' ' + data_dispo
+
+                print(id_compromisso)
+
+                data_publi = page[index_data_publi+17:index_jornal].strip()
+                print(data_publi)
+
+                jornal = page[index_jornal+7:index_tribunal].strip()
+                print(jornal)
+
+                tribunal = page[index_tribunal+9:index_vara].strip()
+                print(tribunal)
+
+                vara = page[index_vara + 5:index_cidade].strip()
+                print(vara)
+
+                cidade = page[index_cidade+7:index_pagina].strip()
+                print(cidade)
+
+                pagina = page[index_pagina+7:index_titulo].strip()
+                print(pagina)
+
+                titulo = page[index_titulo:]
+                print(titulo)
+
+
+                print('\n')
+
+
+
 
 
 process = Ocr('publicacoes_42_90554530_221215_TJCE_20221215_085343.pdf')
