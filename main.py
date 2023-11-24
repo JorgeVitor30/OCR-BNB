@@ -1,15 +1,17 @@
+import os
 import pandas as pd
+import win32com.client
+
 from PyPDF2 import PdfReader
 
+
 class Ocr:
-    def __init__(self, dir_pdf):
-        self.dir = dir_pdf
-        self.pdf = PdfReader(dir_pdf)
+    def __init__(self):
+        self.pdf = self.opening_file()
 
     def process(self):
         dados = self.extraction()
         self.transform_to_df(dados)
-
 
     def returning_pages(self):
         # Quantidade total de páginas no PDF
@@ -32,14 +34,19 @@ class Ocr:
 
                 index_processo = page.find('Processo')
                 index_data_disp = page.find('Data Disponibilização::')
+
                 index_data_publi = page.find('Data Publicação::')
                 index_data_publi2 = page.find('Data Publ')
+                index_data_publi3 = page.find('Data Pub')
+                index_data_publi4 = page.find('DataPublicação::')
+
                 index_jornal = page.find('Jornal:')
                 index_tribunal = page.find('Tribunal:')
                 index_vara = page.find('Vara:')
                 index_cidade =page.find('Cidade:')
                 index_pagina = page.find('Página:')
                 index_titulo = page.find('Título:')
+
 
                 number_aux_publi = 17
 
@@ -61,7 +68,7 @@ class Ocr:
                 vara = page[index_vara + 5:index_cidade].strip()
                 cidade = page[index_cidade+7:index_pagina].strip()
                 pagina = page[index_pagina+7:index_titulo].strip()
-                titulo = page[index_titulo:]
+                titulo = page[index_titulo+7:].strip()
 
                 temp_aux.append(id_compromisso)
                 temp_aux.append(data_publi)
@@ -79,15 +86,44 @@ class Ocr:
     def transform_to_df(self, lista):
         df = pd.DataFrame()
 
-
         colunas = ["id_compromisso", "data_publicacao", "jornal", "tribunal", "vara", "cidade", "pagina", "titulo"]
-        df = pd.DataFrame(lista, columns=colunas)
-        print(df)
+        df = pd.DataFrame(lista, columns=colunas).set_index('id_compromisso')
+        # print(df)
         df.to_excel('teste.xlsx')
 
-process = Ocr('publicacoes_42_90554530_221215_TJCE_20221215_085343.pdf')
-process.process()
+        return df
 
+    def opening_file(self):
+
+        caminho = R'C:\Users\B901488\OneDrive - bnb.gov.br\Documentos\PASTA_OCR'
+        file_name = os.listdir(caminho)[0]
+        if '.pdf' in file_name:
+            pdf = PdfReader(f'{caminho}\\' + file_name)
+
+            return pdf
+
+        if '.doc' in file_name:
+            wdFormatPDF = 17
+
+            inputFile = os.path.abspath(f"{caminho}\\{file_name}")
+            outputFile = os.path.abspath(f"{caminho}\\{file_name}.pdf")
+            word = win32com.client.Dispatch("Word.Application")
+            doc = word.Documents.Open(inputFile)
+            doc.SaveAs(outputFile, FileFormat=wdFormatPDF)
+            doc.Close()
+            word.Quit()
+
+            pdf = PdfReader(f'{caminho}\\{file_name}.pdf')
+
+            return pdf
+
+        return False
+
+try:
+    process = Ocr()
+    process.process()
+except Exception as e:
+    raise e
 
 
 #TODO FAZER UMA CLASSE DE VERIFICAÇÃO ARQUIVO WORD (CONVERSÃO PARA PDF)
