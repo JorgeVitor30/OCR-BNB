@@ -11,7 +11,8 @@ class Ocr:
 
     def process(self):
         dados = self.extraction()
-        self.transform_to_df(dados)
+        df = self.transform_to_df(dados)
+        self.insert_to_db_sql(df)
 
     def returning_pages(self):
         # Quantidade total de páginas no PDF
@@ -87,8 +88,8 @@ class Ocr:
         df = pd.DataFrame()
 
         colunas = ["id_compromisso", "data_publicacao", "jornal", "tribunal", "vara", "cidade", "pagina", "titulo"]
-        df = pd.DataFrame(lista, columns=colunas).set_index('id_compromisso')
-        # print(df)
+        df = pd.DataFrame(lista, columns=colunas)
+
         df.to_excel('teste.xlsx')
 
         return df
@@ -119,11 +120,13 @@ class Ocr:
 
         return False
 
+    def insert_to_db_sql(self, df):
+        from connection import ConnectionDb
+        connect = ConnectionDb(df)
+        connect.insert_to_db()
+
 try:
     process = Ocr()
     process.process()
 except Exception as e:
     raise e
-
-
-#TODO FAZER UMA CLASSE DE VERIFICAÇÃO ARQUIVO WORD (CONVERSÃO PARA PDF)
