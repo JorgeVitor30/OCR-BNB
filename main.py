@@ -3,6 +3,7 @@ import pandas as pd
 import win32com.client
 
 from PyPDF2 import PdfReader
+from connection import ConnectionDb
 
 
 class Ocr:
@@ -38,8 +39,6 @@ class Ocr:
 
                 index_data_publi = page.find('Data Publicação::')
                 index_data_publi2 = page.find('Data Publ')
-                index_data_publi3 = page.find('Data Pub')
-                index_data_publi4 = page.find('DataPublicação::')
 
                 index_jornal = page.find('Jornal:')
                 index_tribunal = page.find('Tribunal:')
@@ -48,20 +47,14 @@ class Ocr:
                 index_pagina = page.find('Página:')
                 index_titulo = page.find('Título:')
 
-
                 number_aux_publi = 17
 
                 if index_data_publi == -1:
                     index_data_publi = index_data_publi2
                     number_aux_publi += 1
 
-
                 id_processo = page[(index_processo+9):index_data_disp].replace(' ', '').strip()
-
                 data_dispo = page[index_data_disp+23:index_data_publi].strip()
-
-                id_compromisso = id_processo + ' ' + data_dispo
-
 
                 data_publi = page[index_data_publi+number_aux_publi:index_jornal].strip()
                 jornal = page[index_jornal+7:index_tribunal].strip()
@@ -71,7 +64,8 @@ class Ocr:
                 pagina = page[index_pagina+7:index_titulo].strip()
                 titulo = page[index_titulo+7:].strip()
 
-                temp_aux.append(id_compromisso)
+                temp_aux.append(id_processo)
+                temp_aux.append(data_dispo)
                 temp_aux.append(data_publi)
                 temp_aux.append(jornal)
                 temp_aux.append(tribunal)
@@ -87,7 +81,7 @@ class Ocr:
     def transform_to_df(self, lista):
         df = pd.DataFrame()
 
-        colunas = ["id_compromisso", "data_publicacao", "jornal", "tribunal", "vara", "cidade", "pagina", "titulo"]
+        colunas = ["id_compromisso", "data_disponibilizacao", "data_publicacao", "jornal", "tribunal", "vara", "cidade", "pagina", "titulo"]
         df = pd.DataFrame(lista, columns=colunas)
 
         df.to_excel('teste.xlsx')
@@ -95,7 +89,6 @@ class Ocr:
         return df
 
     def opening_file(self):
-
         caminho = R'C:\Users\B901488\OneDrive - bnb.gov.br\Documentos\PASTA_OCR'
         file_name = os.listdir(caminho)[0]
         if '.pdf' in file_name:
@@ -121,9 +114,30 @@ class Ocr:
         return False
 
     def insert_to_db_sql(self, df):
-        from connection import ConnectionDb
-        connect = ConnectionDb(df)
-        connect.insert_to_db()
+        import pyodbc
+
+        conn = pyodbc.connect('DRIVER={SQL Server};SERVER=G03SQLD01\DWD;DATABASE=B901488;Trusted_Connection=yes;')
+
+        try:
+            cursor = conn.cursor()
+
+            cursor.execute('TRUNCATE TABLE Intimacao')
+
+            for index, row in df.iterrows():
+                cursor.execute(
+                    "INSERT INTO Intimacao (id_compromisso, data_disponibilizacao, data_publicacao, jornal, vara, cidade, pagina, titulo) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                               row['id_compromisso'], row['data_disponibilizacao'],row['data_publicacao'], row['jornal'], row['vara'], row['cidade'], row['pagina'], row['titulo'])
+
+            conn.commit()
+            print("Operação realizada com sucesso!")
+        except Exception as e:
+            conn.rollback()
+            print(f"Ocorreu um erro: {str(e)}")
+
+        # Feche a conexão
+
+        conn.close()
+
 
 try:
     process = Ocr()
