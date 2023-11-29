@@ -1,0 +1,4 @@
+pandas
+pyodbc
+PyPDF2
+pywin32
