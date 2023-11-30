@@ -3,7 +3,7 @@ import pandas as pd
 import win32com.client
 
 from PyPDF2 import PdfReader
-from connection import ConnectionDb
+import pyodbc
 
 
 class Ocr:
@@ -26,7 +26,8 @@ class Ocr:
 
     def extraction(self):
         all_list = []
-        for i in range(self.returning_pages()):
+        total_range = self.returning_pages()
+        for i in range(total_range):
             temp_aux = []
             page = self.pdf.pages[i].extract_text()
 
@@ -63,6 +64,15 @@ class Ocr:
                 cidade = page[index_cidade+7:index_pagina].strip()
                 pagina = page[index_pagina+7:index_titulo].strip()
                 titulo = page[index_titulo+7:].strip()
+
+                count = 1
+
+                next_page = self.pdf.pages[i+count].extract_text()
+
+                while next_page.find('BANCO DO NORDESTE') == -1 and len(next_page) > 180:    # VERIFICAR SE A PÁGINA AINDA TEM TÍTULO
+                    titulo = titulo + ' ' + next_page[169:]
+                    count += 1
+                    next_page = self.pdf.pages[i + count].extract_text()
 
                 temp_aux.append(id_processo)
                 temp_aux.append(data_dispo)
@@ -114,7 +124,6 @@ class Ocr:
         return False
 
     def insert_to_db_sql(self, df):
-        import pyodbc
 
         conn = pyodbc.connect('DRIVER={SQL Server};SERVER=G03SQLD01\DWD;DATABASE=B901488;Trusted_Connection=yes;')
 
@@ -134,8 +143,6 @@ class Ocr:
             conn.rollback()
             print(f"Ocorreu um erro: {str(e)}")
 
-        # Feche a conexão
-
         conn.close()
 
 
@@ -144,3 +151,6 @@ try:
     process.process()
 except Exception as e:
     raise e
+
+#TODO VER A QUESTÃO DE PEGAR A PRÓXIMA PÁGINA E VERIFICAR SE TEM TEXTO E CONCATENAR COM O TITULO PARA PEGAR TUDO
+#TODO EXISTEM CASOS Q TEM TÍTULO EM 3 PÁGINAS DO PDF
